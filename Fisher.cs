@@ -219,7 +219,7 @@ namespace nw_fish
                         if (idleImageBestMatch.value > imageTemplates["start"].Tolerance)
                         {
                             if (stageStopwatch.IsRunning)
-
+                                stageStopwatch.Reset();
                             runsCount++;
                             RunChanged(new RunChangedEventArgs() { Count = runsCount });
 
