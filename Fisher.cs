@@ -36,8 +36,7 @@ namespace nw_fish
         private InputSimulator inputSimulator; //Used for input
         private VirtualKeyCode freeLookKeybind;
         private VirtualKeyCode inventoryKeybind;
-        private const int maxCastIdleTime = 5000;
-        private const int maxReelIdleTime = 5000;
+        private const int maxIdleTime = 5000;
         private const int maxCastTime = 1980;
         private int castTime;
         private int afkTime;
@@ -151,8 +150,7 @@ namespace nw_fish
             bool freeLooking = false;
             bool baitEquipped = false;
             Stopwatch afkStopwatch = new Stopwatch();
-            Stopwatch castStopwatch = new Stopwatch();
-            Stopwatch reelStopwatch = new Stopwatch();
+            Stopwatch stageStopwatch = new Stopwatch();
 
             while (true)
             {
@@ -220,6 +218,8 @@ namespace nw_fish
 
                         if (idleImageBestMatch.value > imageTemplates["start"].Tolerance)
                         {
+                            if (stageStopwatch.IsRunning)
+
                             runsCount++;
                             RunChanged(new RunChangedEventArgs() { Count = runsCount });
 
@@ -302,6 +302,17 @@ namespace nw_fish
 
                             action = State.Casting;
                         }
+
+                        if (!stageStopwatch.IsRunning)
+                            stageStopwatch.Start();
+                        else if (stageStopwatch.IsRunning && stageStopwatch.ElapsedMilliseconds > maxIdleTime)
+                        {
+                            Notify(new NotifyEventArgs() { Message = $"Can't find start [{idleImageBestMatch.value} > {imageTemplates["start"].Tolerance}]...\r\nRestarting...\r\n" });
+                            targetImage.Dispose();
+                            stageStopwatch.Reset();
+                            action = State.Idle;
+                        }
+
                         break;
                     case State.Casting:
                         Image<Gray, float> hookImageMatch = targetImage.MatchTemplate(imageTemplates["hook"].Image, Emgu.CV.CvEnum.TemplateMatchingType.CcoeffNormed);
@@ -313,8 +324,8 @@ namespace nw_fish
                         {
                             targetImage.Dispose();
 
-                            if (castStopwatch.IsRunning)
-                                castStopwatch.Reset();
+                            if (stageStopwatch.IsRunning)
+                                stageStopwatch.Reset();
 
                             Notify(new NotifyEventArgs() { Message = "Found hook...\r\n" });
                             inputSimulator.Mouse.LeftButtonDown().Sleep(100).LeftButtonUp();
@@ -332,18 +343,18 @@ namespace nw_fish
                         {
                             targetImage.Dispose();
 
-                            if (castStopwatch.IsRunning)
-                                castStopwatch.Reset();
+                            if (stageStopwatch.IsRunning)
+                                stageStopwatch.Reset();
                             continue;
                         }
 
-                        if (!castStopwatch.IsRunning)
-                            castStopwatch.Start();
-                        else if (castStopwatch.IsRunning && castStopwatch.ElapsedMilliseconds > maxCastIdleTime)
+                        if (!stageStopwatch.IsRunning)
+                            stageStopwatch.Start();
+                        else if (stageStopwatch.IsRunning && stageStopwatch.ElapsedMilliseconds > maxIdleTime)
                         {
-                            Notify(new NotifyEventArgs() { Message = "Restarting...\r\n" });
+                            Notify(new NotifyEventArgs() { Message = $"Can't find cast or hook [{hookImageBestMatch.value} > {imageTemplates["hook"].Tolerance}] / [{castImageBestMatch.value} > {imageTemplates["cast"].Tolerance}]...\r\nRestarting...\r\n" });
                             targetImage.Dispose();
-                            castStopwatch.Reset();
+                            stageStopwatch.Reset();
                             action = State.Idle;
                         }
                         break;
@@ -354,8 +365,8 @@ namespace nw_fish
 
                         if (reelImageBestMatch.value > imageTemplates["reel"].Tolerance)
                         {
-                            if (reelStopwatch.IsRunning)
-                                reelStopwatch.Reset();
+                            if (stageStopwatch.IsRunning)
+                                stageStopwatch.Reset();
 
                             ReelAction reelAction = GetReelAction(targetImage, reelImageBestMatch.point, imageTemplates["reel"].Image.Size);
 
@@ -375,15 +386,15 @@ namespace nw_fish
                             continue;
                         }
 
-                        if (!reelStopwatch.IsRunning)
-                            reelStopwatch.Start();
-                        else if (reelStopwatch.IsRunning && reelStopwatch.ElapsedMilliseconds > maxReelIdleTime)
+                        if (!stageStopwatch.IsRunning)
+                            stageStopwatch.Start();
+                        else if (stageStopwatch.IsRunning && stageStopwatch.ElapsedMilliseconds > maxIdleTime)
                         {
-                            Notify(new NotifyEventArgs() { Message = "Restarting...\r\n" });
+                            Notify(new NotifyEventArgs() { Message = $"Reel finished [{reelImageBestMatch.value} > {imageTemplates["reel"].Tolerance}]...\r\nRestarting...\r\n" });
                             targetImage.Dispose();
                             inputSimulator.Mouse.LeftButtonUp();
                             reeling = false;
-                            reelStopwatch.Reset();
+                            stageStopwatch.Reset();
                             action = State.Idle;
                         }                        
                         break;
