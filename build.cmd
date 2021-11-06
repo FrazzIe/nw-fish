@@ -1,0 +1,1 @@
+dotnet publish nw-fish.csproj --configuration Release --framework net5.0-windows --output publish --self-contained True --runtime win-x64 --verbosity Normal /property:PublishSingleFile=True /property:IncludeNativeLibrariesForSelfExtract=True /property:DebugType=None /property:DebugSymbols=False
