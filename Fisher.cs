@@ -433,7 +433,10 @@ namespace nw_fish
             bestMatch.point = resultPointMax[0];
 
             if (resultMax.Length == 1)
+            {
+                bestMatch.value = Math.Round(bestMatch.value, 2);
                 return bestMatch;
+            }
 
             for (int i = 1; i < resultMax.Length; i++)
             {
@@ -444,6 +447,7 @@ namespace nw_fish
                 }
             }
 
+            bestMatch.value = Math.Round(bestMatch.value, 2);
             return bestMatch;
         }
 
